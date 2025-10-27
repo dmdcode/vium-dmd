@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getRedirectUrl } from './env';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -9,7 +10,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: getRedirectUrl('/auth/callback')
     }
   });
   

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { BASE_URL } from '../lib/env';
 
 export default function ShareRide({ rideId, origin, destination, driverName, vehicleInfo, estimatedPrice }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function ShareRide({ rideId, origin, destination, driverName, veh
       if (error) throw error;
       
       // Criar o link de compartilhamento com o ID gerado
-      const shareUrl = `${window.location.origin}/share/${data.id}`;
+      const shareUrl = `${BASE_URL}/share/${data.id}`;
       setShareLink(shareUrl);
       setIsOpen(true);
     } catch (err) {

@@ -17,13 +17,13 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
                   to="/login"
-                  className="btn bg-white text-primary hover:bg-white/90 font-semibold px-6 py-3 rounded-lg text-center"
+                  className="inline-flex items-center justify-center bg-white text-primary hover:bg-white/90 font-semibold px-6 py-3 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   Sou Passageiro
                 </Link>
                 <Link
                   to="/driver/register"
-                  className="btn bg-secondary text-white hover:bg-secondary/90 font-semibold px-6 py-3 rounded-lg text-center"
+                  className="inline-flex items-center justify-center bg-secondary text-white hover:bg-secondary/90 font-semibold px-6 py-3 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
                 >
                   Sou Motorista
                 </Link>
@@ -93,7 +93,7 @@ export default function Home() {
             </h2>
             <Link
               to="/login"
-              className="btn bg-primary text-white hover:bg-primary/90 font-semibold px-8 py-3 rounded-lg inline-block"
+              className="inline-block bg-primary text-white hover:bg-primary/90 font-semibold px-8 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
               Cadastre-se Agora
             </Link>

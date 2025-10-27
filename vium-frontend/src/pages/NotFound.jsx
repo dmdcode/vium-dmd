@@ -12,7 +12,7 @@ export default function NotFound() {
         <div className="mt-8">
           <Link
             to="/"
-            className="btn btn-primary px-6 py-3 text-lg"
+            className="inline-flex items-center justify-center rounded-md px-6 py-3 text-lg bg-primary text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
           >
             Voltar para a página inicial
           </Link>
