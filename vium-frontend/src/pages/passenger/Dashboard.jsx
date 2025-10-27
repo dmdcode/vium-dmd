@@ -371,7 +371,7 @@ export default function PassengerDashboard() {
         </div>
 
         {/* Painel inferior (bottom sheet) */}
-        <div className="slide-up absolute bottom-4 left-4 right-4">
+        <div className="slide-up absolute bottom-4 left-4 right-4 z-[500]">
           <div className="bg-white rounded-2xl shadow-lg p-4 md:p-5">
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
