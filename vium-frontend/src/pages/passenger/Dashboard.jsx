@@ -373,69 +373,59 @@ export default function PassengerDashboard() {
         {/* Painel inferior (bottom sheet) */}
         <div className="slide-up absolute bottom-4 left-4 right-4">
           <div className="bg-white rounded-2xl shadow-lg p-4 md:p-5">
-            {rideStatus === 'idle' && (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 20.5l-7.5-7.5-7.5 7.5"/></svg>
-                  <span className="text-sm text-gray-700 font-medium">Origem</span>
-                </div>
-                <AddressInput label="" value={origin} onChange={setOrigin} />
-                {!(geoPermission === 'granted' && hasUserLocation) && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await requestUserLocation();
-                        setRouteError(null);
-                      } catch (e) {
-                        setRouteError('Não foi possível obter sua localização.');
-                      }
-                    }}
-                    className="w-full py-2 px-4 rounded-md font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  >
-                    Usar minha localização
-                  </button>
-                )}
-
-                <div className="flex items-center space-x-2 pt-2">
-                  <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7l-2 5h4l-2 5"/></svg>
-                  <span className="text-sm text-gray-700 font-medium">Destino</span>
-                </div>
-                <AddressInput label="" value={destination} onChange={setDestination} />
-
-                {routeError && (
-                  <div className="text-red-600 text-sm">{routeError}</div>
-                )}
-                {routeDistance && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                      <span className="text-blue-800 font-medium">
-                        Distância: {routeDistance.toFixed(2)} km
-                      </span>
-                    </div>
-                  </div>
-                )}
-
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 20.5l-7.5-7.5-7.5 7.5"/></svg>
+                <span className="text-sm text-gray-700 font-medium">Origem</span>
+              </div>
+              <AddressInput label="Origem" value={origin} onChange={setOrigin} />
+              {!(geoPermission === 'granted' && hasUserLocation) && (
                 <button
-                  onClick={async () => { await drawRoute(); searchNearbyDrivers(); }}
-                  disabled={!destination || loadingRoute}
-                  className={`w-full py-3 px-4 rounded-xl font-semibold transition ${
-                    destination && !loadingRoute ? 'bg-secondary text-white hover:bg-secondary/90 shadow-sm' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await requestUserLocation();
+                      setRouteError(null);
+                    } catch (e) {
+                      setRouteError('Não foi possível obter sua localização.');
+                    }
+                  }}
+                  className="w-full py-2 px-4 rounded-md font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
-                  {loadingRoute ? 'Calculando trajeto...' : 'Buscar Corrida'}
+                  Usar minha localização
                 </button>
-              </div>
-            )}
+              )}
 
-            {rideStatus === 'searching' && (
-              <div className="space-y-3 text-center">
-                <div className="spinner mx-auto"></div>
-                <p className="text-gray-700">Buscando motoristas próximos a você...</p>
-                <button disabled className="w-full py-3 px-4 rounded-xl font-semibold bg-secondary text-white opacity-75 animate-pulse">Buscando...</button>
+              <div className="flex items-center space-x-2 pt-2">
+                <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7l-2 5h4l-2 5"/></svg>
+                <span className="text-sm text-gray-700 font-medium">Destino</span>
               </div>
-            )}
+              <AddressInput label="Destino" value={destination} onChange={setDestination} />
+
+              {routeError && (
+                <div className="text-red-600 text-sm">{routeError}</div>
+              )}
+              {routeDistance && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <span className="text-blue-800 font-medium">
+                      Distância: {routeDistance.toFixed(2)} km
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={async () => { if (rideStatus !== 'searching') { await drawRoute(); searchNearbyDrivers(); } }}
+                disabled={!destination || loadingRoute || rideStatus === 'searching'}
+                className={`w-full py-3 px-4 rounded-xl font-semibold transition ${
+                  destination && !loadingRoute && rideStatus !== 'searching' ? 'bg-secondary text-white hover:bg-secondary/90 shadow-sm' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {rideStatus === 'searching' ? 'Buscando motoristas...' : (loadingRoute ? 'Calculando trajeto...' : 'Buscar Corrida')}
+              </button>
+            </div>
 
             {rideStatus === 'idle' && availableDrivers.length > 0 && (
               <div className="space-y-4">
