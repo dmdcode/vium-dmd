@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../../lib/supabase';
 import L from 'leaflet';
@@ -17,7 +17,13 @@ export default function PassengerDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState([51.505, -0.09]); // Posição padrão
+  const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
+  const [originCoords, setOriginCoords] = useState(null);
+  const [destinationCoords, setDestinationCoords] = useState(null);
+  const [routeCoords, setRouteCoords] = useState(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
+  const [routeError, setRouteError] = useState(null);
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [rideStatus, setRideStatus] = useState('idle'); // idle, searching, confirmed, active, completed
@@ -106,8 +112,52 @@ export default function PassengerDashboard() {
     setRideStatus('idle');
     setSelectedDriver(null);
     setDestination('');
+    setOrigin('');
+    setOriginCoords(null);
+    setDestinationCoords(null);
+    setRouteCoords(null);
+    setRouteError(null);
     setAvailableDrivers([]);
   };
+
+  // Geocodificar endereço usando Nominatim (OpenStreetMap)
+  async function geocodeAddress(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+    if (!res.ok) throw new Error('Falha ao geocodificar');
+    const data = await res.json();
+    if (!data || data.length === 0) throw new Error('Endereço não encontrado');
+    const lat = parseFloat(data[0].lat);
+    const lon = parseFloat(data[0].lon);
+    return { lat, lon };
+  }
+
+  // Traçar rota entre origem e destino usando OSRM
+  async function drawRoute() {
+    try {
+      setRouteError(null);
+      setLoadingRoute(true);
+      const from = await geocodeAddress(origin || '');
+      const to = await geocodeAddress(destination || '');
+      setOriginCoords([from.lat, from.lon]);
+      setDestinationCoords([to.lat, to.lon]);
+
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(routeUrl);
+      if (!res.ok) throw new Error('Falha ao calcular rota');
+      const json = await res.json();
+      if (!json.routes || json.routes.length === 0) throw new Error('Rota não encontrada');
+      const coords = json.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+      setRouteCoords(coords);
+      // Centraliza no ponto de origem
+      setPosition([from.lat, from.lon]);
+    } catch (e) {
+      console.error('Erro ao traçar rota:', e);
+      setRouteError(e.message || 'Erro ao traçar rota');
+    } finally {
+      setLoadingRoute(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -134,6 +184,20 @@ export default function PassengerDashboard() {
                 Sua localização atual
               </Popup>
             </Marker>
+
+            {originCoords && (
+              <Marker position={[originCoords[0], originCoords[1]]}>
+                <Popup>Origem</Popup>
+              </Marker>
+            )}
+            {destinationCoords && (
+              <Marker position={[destinationCoords[0], destinationCoords[1]]}>
+                <Popup>Destino</Popup>
+              </Marker>
+            )}
+            {routeCoords && (
+              <Polyline positions={routeCoords} pathOptions={{ color: '#3B82F6', weight: 5 }} />
+            )}
             
             {selectedDriver && rideStatus === 'active' && (
               <Marker position={[position[0] + 0.002, position[1] + 0.002]}>
@@ -155,9 +219,10 @@ export default function PassengerDashboard() {
                 <input
                   type="text"
                   id="origin"
-                  value="Minha localização atual"
-                  disabled
-                  className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500"
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  placeholder="Digite o endereço de origem"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                 />
               </div>
               <div>
@@ -171,6 +236,18 @@ export default function PassengerDashboard() {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                 />
               </div>
+              {routeError && (
+                <div className="text-red-600 text-sm">{routeError}</div>
+              )}
+              <button
+                onClick={drawRoute}
+                disabled={!origin || !destination || loadingRoute}
+                className={`w-full py-2 px-4 rounded-md font-medium ${
+                  origin && destination && !loadingRoute ? 'bg-secondary text-white hover:bg-secondary/90' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {loadingRoute ? 'Calculando trajeto...' : 'Mostrar trajeto'}
+              </button>
               <button
                 onClick={searchNearbyDrivers}
                 disabled={!destination}
