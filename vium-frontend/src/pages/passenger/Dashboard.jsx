@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../../lib/supabase';
@@ -15,6 +15,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function PassengerDashboard() {
+  const mapRef = useRef(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState([51.505, -0.09]); // Posição padrão
@@ -24,6 +25,7 @@ export default function PassengerDashboard() {
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [routeCoords, setRouteCoords] = useState(null);
+  const [routeDistance, setRouteDistance] = useState(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [routeError, setRouteError] = useState(null);
   const [availableDrivers, setAvailableDrivers] = useState([]);
@@ -58,6 +60,15 @@ export default function PassengerDashboard() {
           const coords = [pos.coords.latitude, pos.coords.longitude];
           setPosition(coords);
           setHasUserLocation(true);
+          
+          // Centralizar mapa na localização do usuário com flyTo
+          if (mapRef.current) {
+            mapRef.current.flyTo(coords, 15, {
+              animate: true,
+              duration: 1.5
+            });
+          }
+          
           resolve(coords);
         },
         (err) => {
@@ -67,6 +78,32 @@ export default function PassengerDashboard() {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     });
+  }
+
+  // Calcular distância entre dois pontos usando fórmula de Haversine
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Raio da Terra em km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance;
+  }
+
+  // Centralizar mapa para mostrar origem e destino
+  function centerMapOnRoute(originCoords, destinationCoords) {
+    if (mapRef.current && originCoords && destinationCoords) {
+      const bounds = L.latLngBounds([originCoords, destinationCoords]);
+      mapRef.current.fitBounds(bounds, {
+        padding: [20, 20],
+        animate: true,
+        duration: 1.5
+      });
+    }
   }
 
   // Simular busca de motoristas próximos
@@ -165,6 +202,7 @@ export default function PassengerDashboard() {
     try {
       setRouteError(null);
       setLoadingRoute(true);
+      setRouteDistance(null);
       const originTrim = (origin || '').trim();
       const destTrim = (destination || '').trim();
 
@@ -196,6 +234,10 @@ export default function PassengerDashboard() {
       setOriginCoords([from.lat, from.lon]);
       setDestinationCoords([to.lat, to.lon]);
 
+      // Calcular distância entre origem e destino
+      const distance = calculateDistance(from.lat, from.lon, to.lat, to.lon);
+      setRouteDistance(distance);
+
       const routeUrl = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
       const res = await fetch(routeUrl);
       if (!res.ok) throw new Error('Falha ao calcular rota');
@@ -203,8 +245,10 @@ export default function PassengerDashboard() {
       if (!json.routes || json.routes.length === 0) throw new Error('Rota não encontrada');
       const coords = json.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]);
       setRouteCoords(coords);
-      // Centraliza no ponto de origem
-      setPosition([from.lat, from.lon]);
+      
+      // Centralizar mapa para mostrar origem e destino
+      centerMapOnRoute([from.lat, from.lon], [to.lat, to.lon]);
+      
     } catch (e) {
       console.error('Erro ao traçar rota:', e);
       setRouteError(e.message || 'Erro ao traçar rota');
@@ -228,7 +272,12 @@ export default function PassengerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Mapa */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden h-[60vh]">
-          <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
+          <MapContainer 
+            center={position} 
+            zoom={13} 
+            style={{ height: '100%', width: '100%' }}
+            ref={mapRef}
+          >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -286,6 +335,18 @@ export default function PassengerDashboard() {
               <AddressInput label="Destino" value={destination} onChange={setDestination} />
               {routeError && (
                 <div className="text-red-600 text-sm">{routeError}</div>
+              )}
+              {routeDistance && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span className="text-blue-800 font-medium">
+                      Distância: {routeDistance.toFixed(2)} km
+                    </span>
+                  </div>
+                </div>
               )}
               <button
                 onClick={drawRoute}
