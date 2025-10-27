@@ -1,11 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle } from '../lib/supabase';
+import { signInWithGoogle, supabase } from '../lib/supabase';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Capturar token OAuth do hash da URL
+  useEffect(() => {
+    supabase.auth.getSessionFromUrl({ storeSession: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao recuperar sessão do Supabase:', error);
+          return;
+        }
+        if (data.session) {
+          console.log('Sessão OAuth recuperada com sucesso');
+          navigate('/user-type');
+        }
+      });
+  }, [navigate]);
 
   const handleGoogleLogin = async () => {
     try {

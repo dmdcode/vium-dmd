@@ -37,6 +37,14 @@ function App() {
     loadUser()
   }, [])
 
+  // Limpar hash da URL após processamento do token OAuth
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
