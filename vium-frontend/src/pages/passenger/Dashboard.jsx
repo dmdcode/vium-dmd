@@ -18,6 +18,7 @@ export default function PassengerDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState([51.505, -0.09]); // Posição padrão
+  const [hasUserLocation, setHasUserLocation] = useState(false);
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [originCoords, setOriginCoords] = useState(null);
@@ -35,16 +36,6 @@ export default function PassengerDashboard() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-        
-        // Obter localização atual
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setPosition([position.coords.latitude, position.coords.longitude]);
-          },
-          (error) => {
-            console.error("Erro ao obter localização:", error);
-          }
-        );
       } catch (error) {
         console.error('Erro ao carregar dados do usuário:', error);
       } finally {
@@ -54,6 +45,29 @@ export default function PassengerDashboard() {
 
     loadUserData();
   }, []);
+
+  // Solicitar geolocalização apenas em resposta a gesto do usuário
+  function requestUserLocation() {
+    return new Promise((resolve, reject) => {
+      if (!('geolocation' in navigator)) {
+        reject(new Error('Geolocalização não suportada'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = [pos.coords.latitude, pos.coords.longitude];
+          setPosition(coords);
+          setHasUserLocation(true);
+          resolve(coords);
+        },
+        (err) => {
+          console.error('Erro ao obter localização:', err);
+          reject(err);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
 
   // Simular busca de motoristas próximos
   const searchNearbyDrivers = () => {
@@ -161,10 +175,14 @@ export default function PassengerDashboard() {
       // Origem: usa localização atual se vazio
       let from;
       if (!originTrim) {
-        if (position && Array.isArray(position)) {
+        // Se ainda não coletamos a localização via gesto, solicitar agora (clique do botão)
+        if (!hasUserLocation) {
+          const coords = await requestUserLocation();
+          from = { lat: coords[0], lon: coords[1] };
+        } else if (position && Array.isArray(position)) {
           from = { lat: position[0], lon: position[1] };
         } else {
-          throw new Error('Origem não definida; ative a localização ou informe um endereço');
+          throw new Error('Origem não definida; clique em "Usar minha localização" ou informe um endereço');
         }
       } else {
         const parsed = parseLatLon(originTrim);
@@ -251,6 +269,20 @@ export default function PassengerDashboard() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Para onde vamos?</h2>
               <AddressInput label="Origem" value={origin} onChange={setOrigin} />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await requestUserLocation();
+                    setRouteError(null);
+                  } catch (e) {
+                    setRouteError('Não foi possível obter sua localização.');
+                  }
+                }}
+                className="mb-2 w-full py-2 px-4 rounded-md font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                Usar minha localização
+              </button>
               <AddressInput label="Destino" value={destination} onChange={setDestination} />
               {routeError && (
                 <div className="text-red-600 text-sm">{routeError}</div>
