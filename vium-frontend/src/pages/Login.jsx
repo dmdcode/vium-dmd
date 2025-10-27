@@ -7,19 +7,32 @@ export default function Login() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Capturar token OAuth do hash da URL
+  // Detectar sessão OAuth e redirecionar (compatível com supabase-js v2)
   useEffect(() => {
-    supabase.auth.getSessionFromUrl({ storeSession: true })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Erro ao recuperar sessão do Supabase:', error);
-          return;
-        }
-        if (data.session) {
-          console.log('Sessão OAuth recuperada com sucesso');
-          navigate('/user-type');
-        }
-      });
+    // Verificar sessão atual
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error('Erro ao obter sessão:', error);
+        return;
+      }
+      if (data?.session) {
+        console.log('Sessão OAuth ativa');
+        navigate('/user-type');
+      }
+    });
+
+    // Ouvir mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        console.log('Evento SIGNED_IN capturado');
+        navigate('/user-type');
+      }
+    });
+
+    // Cleanup do listener
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [navigate]);
 
   const handleGoogleLogin = async () => {
