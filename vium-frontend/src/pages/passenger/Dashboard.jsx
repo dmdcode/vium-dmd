@@ -121,9 +121,11 @@ export default function PassengerDashboard() {
   };
 
   // Geocodificar endereço usando Nominatim (OpenStreetMap)
-  async function geocodeAddress(query) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+  async function geocodeAddress(query, opts = {}) {
+    const q = (query || '').trim();
+    const countrycodes = opts.countrycodes || 'br';
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=1&countrycodes=${countrycodes}`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } });
     if (!res.ok) throw new Error('Falha ao geocodificar');
     const data = await res.json();
     if (!data || data.length === 0) throw new Error('Endereço não encontrado');
@@ -132,13 +134,46 @@ export default function PassengerDashboard() {
     return { lat, lon };
   }
 
+  // Tenta interpretar entrada "lat, lon"
+  function parseLatLon(input) {
+    if (!input) return null;
+    const m = input.trim().match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    if (!m) return null;
+    const lat = parseFloat(m[1]);
+    const lon = parseFloat(m[2]);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+    return { lat, lon };
+  }
+
   // Traçar rota entre origem e destino usando OSRM
   async function drawRoute() {
     try {
       setRouteError(null);
       setLoadingRoute(true);
-      const from = await geocodeAddress(origin || '');
-      const to = await geocodeAddress(destination || '');
+      const originTrim = (origin || '').trim();
+      const destTrim = (destination || '').trim();
+
+      if (!destTrim) {
+        throw new Error('Informe o destino');
+      }
+
+      // Origem: usa localização atual se vazio
+      let from;
+      if (!originTrim) {
+        if (position && Array.isArray(position)) {
+          from = { lat: position[0], lon: position[1] };
+        } else {
+          throw new Error('Origem não definida; ative a localização ou informe um endereço');
+        }
+      } else {
+        const parsed = parseLatLon(originTrim);
+        from = parsed ? { lat: parsed.lat, lon: parsed.lon } : await geocodeAddress(originTrim);
+      }
+
+      // Destino: aceita "lat, lon" ou geocodifica
+      const parsedDest = parseLatLon(destTrim);
+      const to = parsedDest ? { lat: parsedDest.lat, lon: parsedDest.lon } : await geocodeAddress(destTrim);
+
       setOriginCoords([from.lat, from.lon]);
       setDestinationCoords([to.lat, to.lon]);
 
@@ -241,9 +276,9 @@ export default function PassengerDashboard() {
               )}
               <button
                 onClick={drawRoute}
-                disabled={!origin || !destination || loadingRoute}
+                disabled={!destination || loadingRoute}
                 className={`w-full py-2 px-4 rounded-md font-medium ${
-                  origin && destination && !loadingRoute ? 'bg-secondary text-white hover:bg-secondary/90' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  destination && !loadingRoute ? 'bg-secondary text-white hover:bg-secondary/90' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 {loadingRoute ? 'Calculando trajeto...' : 'Mostrar trajeto'}
