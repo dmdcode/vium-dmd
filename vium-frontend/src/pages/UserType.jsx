@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -6,6 +6,29 @@ export default function UserType() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Trocar código por sessão (PKCE) ao chegar via redirect do OAuth
+  useEffect(() => {
+    const exchange = async () => {
+      try {
+        const { data, error } = await supabase.auth.exchangeCodeForSession({ storeSession: true });
+        if (error) {
+          console.error('Erro ao recuperar sessão:', error);
+          return;
+        }
+        if (data?.session) {
+          console.log('Sessão recuperada via code exchange');
+          // Limpar query params para evitar poluição da URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      } catch (e) {
+        console.error('Falha no exchangeCodeForSession:', e);
+      }
+    };
+
+    // Executa ao montar, caso tenha retornado do OAuth
+    exchange();
+  }, []);
 
   const handleUserTypeSelection = async (tipo) => {
     try {
@@ -26,16 +49,17 @@ export default function UserType() {
       
       if (updateError) throw updateError;
       
-      // Cria ou atualiza o registro do usuário na tabela users
+      // Inserir registro do usuário na tabela users com colunas corretas
+      const fullName = user.user_metadata?.full_name || user.email;
       const { error: insertError } = await supabase
         .from('users')
-        .upsert({ 
-          id: user.id, 
-          nome: user.user_metadata?.full_name || user.email,
+        .insert([{ 
+          user_id: user.id,
+          name: fullName,
           email: user.email,
-          tipo
-        });
-      
+          user_type: tipo
+        }]);
+
       if (insertError) throw insertError;
       
       // Redireciona com base no tipo selecionado

@@ -31,8 +31,8 @@ export default function Home() {
             </div>
             <div className="hidden md:block md:w-1/2">
               <img
-                src="/images/hero-car.svg"
-                alt="Ilustração de carro"
+                src="/hero-car.svg"
+                alt="Carro Vium"
                 className="w-full h-auto"
               />
             </div>

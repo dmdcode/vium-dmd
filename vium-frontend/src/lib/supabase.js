@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function signInWithGoogle() {
-  const redirectTo = `${window.location.origin}/`;
+  const redirectTo = `${window.location.origin}/user-type`;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
