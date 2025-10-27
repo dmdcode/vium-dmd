@@ -7,28 +7,7 @@ export default function UserType() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Trocar código por sessão (PKCE) ao chegar via redirect do OAuth
-  useEffect(() => {
-    const exchange = async () => {
-      try {
-        const { data, error } = await supabase.auth.exchangeCodeForSession({ storeSession: true });
-        if (error) {
-          console.error('Erro ao recuperar sessão:', error);
-          return;
-        }
-        if (data?.session) {
-          console.log('Sessão recuperada via code exchange');
-          // Limpar query params para evitar poluição da URL
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      } catch (e) {
-        console.error('Falha no exchangeCodeForSession:', e);
-      }
-    };
-
-    // Executa ao montar, caso tenha retornado do OAuth
-    exchange();
-  }, []);
+  // O exchangeCodeForSession é tratado em /auth/callback
 
   const handleUserTypeSelection = async (tipo) => {
     try {

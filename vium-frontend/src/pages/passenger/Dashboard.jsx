@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { supabase } from '../../lib/supabase';
 import L from 'leaflet';
 import ShareRide from '../../components/ShareRide';
+import AddressInput from '../../components/AddressInput';
 
 // Corrigindo o problema dos ícones do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -249,28 +250,8 @@ export default function PassengerDashboard() {
           {rideStatus === 'idle' && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Para onde vamos?</h2>
-              <div>
-                <label htmlFor="origin" className="block text-sm font-medium text-gray-700">Origem</label>
-                <input
-                  type="text"
-                  id="origin"
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  placeholder="Digite o endereço de origem"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                />
-              </div>
-              <div>
-                <label htmlFor="destination" className="block text-sm font-medium text-gray-700">Destino</label>
-                <input
-                  type="text"
-                  id="destination"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="Digite o endereço de destino"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                />
-              </div>
+              <AddressInput label="Origem" value={origin} onChange={setOrigin} />
+              <AddressInput label="Destino" value={destination} onChange={setDestination} />
               {routeError && (
                 <div className="text-red-600 text-sm">{routeError}</div>
               )}

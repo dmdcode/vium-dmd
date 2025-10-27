@@ -7,46 +7,29 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
+    const handleAuth = async () => {
       try {
-        // Processa o callback de autenticação
-        const { data, error } = await supabase.auth.getSession();
-        
+        const { data, error } = await supabase.auth.exchangeCodeForSession({ storeSession: true });
         if (error) {
-          throw error;
+          console.error('Erro ao recuperar sessão:', error);
+          setError('Falha na autenticação. Por favor, tente novamente.');
+          setTimeout(() => navigate('/login'), 3000);
+          return;
         }
 
-        if (data?.session?.user) {
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('tipo')
-            .eq('id', data.session.user.id)
-            .single();
+        // Limpa query params após o exchange
+        window.history.replaceState(null, '', window.location.pathname);
 
-          if (userError && userError.code !== 'PGRST116') {
-            // PGRST116 é o código para "não encontrado", que é esperado para novos usuários
-            console.error('Erro ao buscar dados do usuário:', userError);
-          }
-
-          // Se o usuário já tem um tipo definido, redireciona para o dashboard apropriado
-          if (userData?.tipo) {
-            navigate(`/${userData.tipo}`);
-          } else {
-            // Se não tem tipo definido, redireciona para escolher o tipo
-            navigate('/user-type');
-          }
-        } else {
-          // Se não há sessão, redireciona para login
-          navigate('/login');
-        }
+        // Redireciona pós-login para seleção de tipo
+        navigate('/user-type');
       } catch (err) {
-        console.error('Erro no callback de autenticação:', err);
+        console.error('Erro inesperado na autenticação:', err);
         setError('Falha na autenticação. Por favor, tente novamente.');
         setTimeout(() => navigate('/login'), 3000);
       }
     };
 
-    handleAuthCallback();
+    handleAuth();
   }, [navigate]);
 
   if (error) {
