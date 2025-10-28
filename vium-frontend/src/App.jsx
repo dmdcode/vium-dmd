@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { getCurrentUser } from './lib/supabase'
+import { getCurrentUser, supabase } from './lib/supabase'
 
 // Páginas
 import Home from './pages/Home'
@@ -35,6 +35,15 @@ function App() {
     }
 
     loadUser()
+
+    // Manter o estado do usuário em sincronia com mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      subscription?.unsubscribe()
+    }
   }, [])
 
   // Limpar hash da URL após processamento do token OAuth
